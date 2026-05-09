@@ -55,10 +55,11 @@ fun PlayerCard(player: Player) {
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(0.7f)
-            .padding(4.dp)
-            .clip(ShieldShape), // <-- NUEVA IMPLEMENTACIÓN: Aplica el recorte de escudo
-        shape = ShieldShape,    // <-- NUEVA IMPLEMENTACIÓN: Define la forma de la tarjeta
+            .padding(4.dp),
+        shape = RoundedCornerShape(12.dp),
+
         elevation = CardDefaults.cardElevation(if (player.rareza == "unico") 16.dp else 8.dp)
+
     ) {
         Box(
             modifier = Modifier

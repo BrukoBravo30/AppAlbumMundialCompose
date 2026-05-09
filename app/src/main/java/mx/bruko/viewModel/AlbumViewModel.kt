@@ -1,25 +1,36 @@
 package mx.bruko.viewModel
 
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import mx.bruko.data.Player
 
-class AlbumViewModel : ViewModel() {
+enum class TipoSobre(val precio: Int) {
+    NORMAL(5000),
+    PREMIUM(15000),
+    ULTIMATE(100000)
+}
 
+class AlbumViewModel : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
 
-    // Guardamos los jugadores agrupados por país
+    // --- ECONOMÍA E INVENTARIO ---
+    var monedas by mutableStateOf(25000) // Monedas iniciales de regalo
+
+    // Cartas en el Storage (pueden ser repetidas)
+    var inventario = mutableStateListOf<Player>()
+        private set
+
     var albumByCountry by mutableStateOf<Map<String, List<Player>>>(emptyMap())
         private set
 
     var isLoading by mutableStateOf(true)
         private set
 
-    var allPlayersList by mutableStateOf<List<Player>>(emptyList())
-        private set
+    private var allPlayersList = listOf<Player>()
 
     init {
         fetchAlbumData()
@@ -27,42 +38,92 @@ class AlbumViewModel : ViewModel() {
 
     private fun fetchAlbumData() {
         db.collection("jugadores").get().addOnSuccessListener { result ->
-            val allPlayers = result.toObjects(Player::class.java)
-            allPlayersList = allPlayers // Guardamos la lista plana para los sobres
+            val allPlayers = result.toObjects(Player::class.java).map {
+                it.copy(pegado = false) // EL ÁLBUM INICIA VACÍO
+            }
+            allPlayersList = allPlayers
             albumByCountry = allPlayers.groupBy { it.pais }.toSortedMap()
             isLoading = false
         }
     }
 
-    fun abrirSobre(): List<Player> {
+    // --- LÓGICA DE TIENDA ---
+    fun abrirSobre(tipo: TipoSobre): List<Player>? {
+        if (monedas < tipo.precio) return null // No hay fondos
+
+        monedas -= tipo.precio // Cobrar
         val sobre = mutableListOf<Player>()
-        if (allPlayersList.isEmpty()) return sobre
 
         for (i in 1..5) {
-            val randomValue = Math.random() // Genera un número entre 0.0 y 1.0
-
-            // TABLA DE PROBABILIDADES
-            val targetRarity = when {
-                randomValue < 0.01 -> "unico"      // 1% de probabilidad
-                randomValue < 0.06 -> "Diamante"   // 5% de probabilidad (del 1% al 6%)
-                randomValue < 0.20 -> "Oro"        // 14% de probabilidad
-                randomValue < 0.55 -> "Plata"      // 35% de probabilidad
-                else -> "Bronce"                   // 45% de probabilidad
+            val randomValue = Math.random()
+            val targetRarity = when (tipo) {
+                TipoSobre.PREMIUM -> when {
+                    randomValue < 0.03 -> "unico"
+                    randomValue < 0.15 -> "Diamante"
+                    randomValue < 0.45 -> "Oro"
+                    randomValue < 0.85 -> "Plata"
+                    else -> "Bronce"
+                }
+                TipoSobre.ULTIMATE -> when {
+                    randomValue < 0.15 -> "unico"
+                    randomValue < 0.45 -> "Diamante"
+                    randomValue < 0.85 -> "Oro"
+                    else -> "Plata"
+                }
+                else -> when {
+                    randomValue < 0.005 -> "unico"
+                    randomValue < 0.050 -> "Diamante"
+                    randomValue < 0.200 -> "Oro"
+                    randomValue < 0.500 -> "Plata"
+                    else -> "Bronce"
+                }
             }
 
-            // Filtramos jugadores por la rareza ganada
             var pool = allPlayersList.filter { it.rareza == targetRarity }
-
-            // Si por alguna razón no hay jugadores de esa rareza, tomamos de toda la base
             if (pool.isEmpty()) pool = allPlayersList
 
-            // .random() permite que salgan repetidos de forma natural
             val jugadorGanado = pool.random()
 
-            // Aquí forzamos visualmente a que parezca 'pegado' solo para la animación del sobre
-            sobre.add(jugadorGanado.copy(pegado = true))
+            // Se va al inventario, NO al álbum directo
+            val cartaObtenida = jugadorGanado.copy(pegado = true) // 'pegado=true' solo para que se vea la foto en el inventario/sobre
+            sobre.add(cartaObtenida)
+            inventario.add(cartaObtenida)
         }
         return sobre
     }
-}
 
+    // --- LÓGICA DE INVENTARIO ---
+    fun obtenerPrecioVenta(rareza: String): Int {
+        return when (rareza) {
+            "unico" -> 25000
+            "Diamante" -> 5000
+            "Oro" -> 1500
+            "Plata" -> 500
+            else -> 100 // Bronce
+        }
+    }
+
+    fun venderCarta(jugador: Player) {
+        inventario.remove(jugador)
+        monedas += obtenerPrecioVenta(jugador.rareza)
+    }
+
+    fun pegarEnAlbum(jugador: Player) {
+        // 1. Quitar del inventario
+        inventario.remove(jugador)
+
+        // 2. Actualizar el álbum para mostrarla
+        val paisList = albumByCountry[jugador.pais]?.toMutableList()
+        if (paisList != null) {
+            val index = paisList.indexOfFirst { it.nombre == jugador.nombre }
+            if (index != -1) {
+                paisList[index] = paisList[index].copy(pegado = true)
+
+                // Forzar la recomposición del mapa
+                val newAlbum = albumByCountry.toMutableMap()
+                newAlbum[jugador.pais] = paisList
+                albumByCountry = newAlbum.toSortedMap()
+            }
+        }
+    }
+}
