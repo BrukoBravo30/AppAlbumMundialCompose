@@ -23,7 +23,9 @@ import androidx.compose.ui.unit.sp
 import mx.bruko.viewModel.AlbumViewModel
 
 @Composable
-fun GamesHubScreen(viewModel: AlbumViewModel, onPlayWordle: () -> Unit) {
+fun GamesHubScreen(viewModel: AlbumViewModel,
+                   onPlayWordle: () -> Unit,
+                   onPlayPlinko: () -> Unit) {
     // Fondo de Casino (Tonos púrpuras y negros muy oscuros)
     val bgGradient = Brush.verticalGradient(listOf(Color(0xFF120024), Color(0xFF000000)))
 
@@ -79,15 +81,15 @@ fun GamesHubScreen(viewModel: AlbumViewModel, onPlayWordle: () -> Unit) {
                 )
             }
 
-            // Juego 2: Ruleta (Placeholder para el futuro)
+            // Juego 2: Plinko
             item {
                 GameCard(
-                    title = "Ruleta de Rarezas",
-                    description = "Apuesta a qué calidad de carta saldrá. Riesgo alto, recompensa legendaria.",
-                    icon = Icons.Filled.Casino,
-                    accentColor = Color(0xFFE91E63),
-                    isLocked = true, // Bloqueado por ahora
-                    onClick = { }
+                    title = "Plinko Stake",
+                    description = "La pirámide del destino. ¡Deja caer la bola y busca el ansiado x100!",
+                    icon = Icons.Filled.Casino, // Asegúrate de importar el ícono o usa uno que prefieras
+                    accentColor = Color(0xFF00FF87),
+                    isLocked = false,
+                    onClick = { onPlayPlinko() } // <- CONEXIÓN AL JUEGO
                 )
             }
 

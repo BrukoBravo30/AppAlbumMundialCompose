@@ -7,23 +7,30 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import mx.bruko.games.CeldaWordle
 import mx.bruko.games.EstadoLetra
-
-
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FieldPath
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 class WordleViewModel : ViewModel() {
 
-    // ==========================================
     // 1. CONFIGURACIÓN DEL JUEGO (MOCK)
-    // ==========================================
-    // Cuando conectemos Firestore, esto se llenará dinámicamente con tu base de datos
-    var palabraSecreta = "MESSI"
+    var palabraSecreta by mutableStateOf("")
+        private set
+    var nombreCompletoReal by mutableStateOf("")
+        private set
+    var pistaPais by mutableStateOf("")
+        private set
+    var pistaPosicion by mutableStateOf("")
+        private set
+    var cargandoJugador by mutableStateOf(false)
+        private set
+    val maxIntentos = 5
+
+    var longitudPalabra by mutableStateOf(palabraSecreta.length)
         private set
 
-    val maxIntentos = 6
-    val longitudPalabra = palabraSecreta.length
-
-    // ==========================================
     // 2. ESTADO DEL TABLERO
-    // ==========================================
     // Matriz 2D: Lista de intentos, donde cada intento es una lista de Celdas
     var tablero = mutableStateListOf<List<CeldaWordle>>()
         private set
@@ -42,23 +49,103 @@ class WordleViewModel : ViewModel() {
     // Multiplicador del Casino (Depende en qué intento gane)
     var multiplicadorGanado by mutableStateOf(0)
         private set
+    var premioEntregado by mutableStateOf(false)
+        private set
     var apuestaActual by mutableStateOf(0)
     init {
-        iniciarNuevoJuego("MESSI") // Palabra de prueba
+        obtenerJugadorAleatorioDeFirestore()
     }
 
-    fun iniciarNuevoJuego(nuevaPalabra: String) {
-        palabraSecreta = nuevaPalabra.uppercase()
+    fun obtenerJugadorAleatorioDeFirestore() {
+        cargandoJugador = true
+        val db = FirebaseFirestore.getInstance()
+
+        // Generamos un hash aleatorio de 20 caracteres para simular un ID de Firebase
+        val caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        val idFalsoAleatorio = (1..20).map { caracteres.random() }.joinToString("")
+
+        // Buscamos el primer documento que sea "mayor o igual" al ID falso
+        db.collection("futbolistas_juegos")
+            .whereGreaterThanOrEqualTo(FieldPath.documentId(), idFalsoAleatorio)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (!snapshot.isEmpty) {
+                    val documento = snapshot.documents.first()
+                    NacerJuegoConDocumento(documento)
+                } else {
+                    // Si el ID falso quedó muy alto y no hay nada arriba, buscamos hacia abajo
+                    db.collection("futbolistas_juegos")
+                        .whereLessThanOrEqualTo(FieldPath.documentId(), idFalsoAleatorio)
+                        .limit(1)
+                        .get()
+                        .addOnSuccessListener { snapshotAtras ->
+                            if (!snapshotAtras.isEmpty) {
+                                NacerJuegoConDocumento(snapshotAtras.documents.first())
+                            } else {
+                                cargandoJugador = false // Colección vacía
+                            }
+                        }
+                }
+            }
+            .addOnFailureListener {
+                cargandoJugador = false // Error de conexión
+            }
+    }
+    private fun NacerJuegoConDocumento(doc: com.google.firebase.firestore.DocumentSnapshot) {
+        // Extraemos los campos que guardamos desde el DataFrame de Colab
+        val palabraLimpia = doc.getString("palabra_wordle") ?: "MESSI"
+
+        nombreCompletoReal = doc.getString("nombre") ?: "Desconocido"
+        pistaPais = doc.getString("pais") ?: "Internacional"
+        pistaPosicion = doc.getString("posicion") ?: "Cualquiera"
+
+        // Inicializamos los parámetros del juego con los datos reales
+        palabraSecreta = palabraLimpia.uppercase()
+        longitudPalabra = palabraSecreta.length
+
+        reiniciarTableroLimpio()
+        cargandoJugador = false
+    }
+
+    private fun reiniciarTableroLimpio() {
         tablero.clear()
-        // Rellenamos el tablero con celdas vacías
         for (i in 0 until maxIntentos) {
-            tablero.add(List(palabraSecreta.length) { CeldaWordle() })
+            tablero.add(List(longitudPalabra) { CeldaWordle() })
         }
         intentoActual = 0
         columnaActual = 0
         juegoTerminado = false
         jugadorGano = false
         multiplicadorGanado = 0
+        premioEntregado = false
+    }
+
+    // Modificamos tu función existente para que no pida un String, sino que use Firestore
+    fun iniciarNuevoJuego() {
+        obtenerJugadorAleatorioDeFirestore()
+    }
+
+    fun iniciarNuevoJuego(nuevaPalabra: String) {
+        palabraSecreta = nuevaPalabra.uppercase()
+
+        longitudPalabra = palabraSecreta.length
+
+        premioEntregado = false
+
+        tablero.clear()
+        for (i in 0 until maxIntentos) {
+            tablero.add(List(longitudPalabra) { CeldaWordle() })
+        }
+
+        intentoActual = 0
+        columnaActual = 0
+        juegoTerminado = false
+        jugadorGano = false
+        multiplicadorGanado = 0
+    }
+    fun entregarPremio() {
+        premioEntregado = true
     }
 
     // ==========================================
@@ -88,7 +175,8 @@ class WordleViewModel : ViewModel() {
     // 4. ALGORITMO DE VALIDACIÓN (MAGIA MATEMÁTICA)
     // ==========================================
     fun enviarIntento() {
-        // Solo puede enviar si llenó toda la fila
+        val filaIncompleta = tablero[intentoActual].any { it.estado == EstadoLetra.VACIA || it.char == ' ' }
+        if (filaIncompleta || juegoTerminado) return
         if (columnaActual < longitudPalabra || juegoTerminado) return
 
         val filaEvaluada = tablero[intentoActual].toMutableList()
@@ -139,15 +227,52 @@ class WordleViewModel : ViewModel() {
         }
     }
 
+// ECONOMÍA WORDLE FÚTBOL
+// Skill-based casino
     private fun calcularRecompensaCasino() {
-        // Lógica de multiplicadores según el intento
-        multiplicadorGanado = when (intentoActual) {
-            0 -> 100 // Ganó a la primera (x100)
-            1 -> 50  // (x50)
-            2 -> 20  // (x20)
-            3 -> 10  // (x10)
-            4 -> 5   // (x5)
-            else -> 2 // Sexto intento (x2)
+
+        multiplicadorGanado = when {
+
+            // ======================================
+            // TIER VIP
+            // ======================================
+            apuestaActual >= 1000 -> {
+                when (intentoActual) {
+                    0 -> 5 // Perfecto
+                    1 -> 4
+                    2 -> 3
+                    3 -> 2
+                    4 -> 1
+                    else -> 0
+                }
+            }
+
+            // ======================================
+            // TIER REGULAR
+            // ======================================
+            apuestaActual >= 500 -> {
+                when (intentoActual) {
+                    0 -> 10
+                    1 -> 6
+                    2 -> 3
+                    3 -> 2
+                    4 -> 1
+                    else -> 0
+                }
+            }
+
+            // ======================================
+            // TIER CASUAL
+            // ======================================
+            else -> {
+                when (intentoActual) {
+                    0 -> 8
+                    1 -> 4
+                    2 -> 2
+                    3 -> 1
+                    else -> 0
+                }
+            }
         }
     }
 }

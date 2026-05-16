@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 import mx.bruko.data.Player
+import kotlin.collections.toMutableMap
 
 enum class TipoSobre(val precio: Int) {
     NORMAL(5000),

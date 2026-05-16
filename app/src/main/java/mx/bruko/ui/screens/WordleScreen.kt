@@ -25,84 +25,118 @@ import mx.bruko.viewModel.WordleViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material3.CircularProgressIndicator
 
-// Agrega estas importaciones
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.text.style.TextAlign
 import mx.bruko.viewModel.AlbumViewModel
+
 @Composable
 fun WordleScreen(
     onBack: () -> Unit,
     viewModel: WordleViewModel = viewModel(),
-    albumViewModel: AlbumViewModel // Lo necesitamos para las monedas
+    albumViewModel: AlbumViewModel
 ) {
-    // ESTO CORRIGE EL GESTO DE SALIR:
-    // Cuando el usuario deslice desde el borde, ejecutará onBack()
-    BackHandler {
-        onBack()
-    }
-
+    BackHandler { onBack() }
     val bgGradient = Brush.verticalGradient(listOf(Color(0xFF120024), Color(0xFF000000)))
-    var showBetDialog by remember { mutableStateOf(true) } // Ventana de apuestas al iniciar
+    var showBetDialog by remember { mutableStateOf(true) }
 
     Box(modifier = Modifier.fillMaxSize().background(bgGradient)) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // --- HEADER CON BOTÓN DE SALIR ---
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 40.dp, start = 8.dp, end = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Salir", tint = Color.White)
-                }
-                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("WORDLE FUTBOLERO", color = Color(0xFF00E5FF), fontSize = 20.sp, fontWeight = FontWeight.Black)
-                    Text("🪙 Apuesta actual: ${viewModel.apuestaActual}", color = Color(0xFFFFD700), fontSize = 12.sp)
-                }
-                // Espacio para equilibrar el botón de la izquierda
-                Spacer(modifier = Modifier.size(48.dp))
-            }
 
-            // --- TABLERO (CON PESO DINÁMICO) ---
-            // Usamos fillMaxHeight(0.6f) o weight para que no pelee con el teclado
-            Box(
+        // CAPA CENTRAL: Si está cargando datos de Firebase, mostramos un Spinner neón
+        if (viewModel.cargandoJugador) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = Color(0xFF00E5FF))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Buscando futbolista en los servidores...", color = Color.Gray, fontSize = 14.sp)
+                }
+            }
+        } else {
+            Column(
                 modifier = Modifier
-                    .weight(1.5f)
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .padding(bottom = 8.dp), // Reducimos el margen inferior
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    viewModel.tablero.forEach { fila ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            fila.forEach { celda ->
-                                WordleBox(celda = celda, modifier = Modifier.weight(1f))
+                // --- HEADER ULTRA COMPACTO Y CENTRADO ---
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 20.dp, start = 8.dp, end = 8.dp), // Subimos el header de 40.dp a 20.dp
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Salir", tint = Color.White)
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "WORDLE FUTBOLERO",
+                            color = Color(0xFF00E5FF),
+                            fontSize = 18.sp, // Letra un punto más pequeña para estética
+                            fontWeight = FontWeight.Black
+                        )
+
+                        // Pistas sin emojis y con centrado forzado
+                        Text(
+                            text = "Nacionalidad: ${viewModel.pistaPais} | Posición: ${viewModel.pistaPosicion}",
+                            color = Color.LightGray,
+                            fontSize = 11.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+
+                        Text(
+                            text = "Apuesta actual: ${viewModel.apuestaActual}",
+                            color = Color(0xFFFFD700),
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+
+                    // Contrapeso invisible para que la columna central sea un centro geométrico perfecto
+                    Spacer(modifier = Modifier.size(48.dp))
+                }
+
+                // --- TABLERO (CON MÁS ESPACIO Y OXÍGENO) ---
+                Box(
+                    modifier = Modifier
+                        .weight(1.8f) // Le robamos un poco de peso al teclado para dárselo a las cajas
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp), // Márgenes mínimos
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { // Cajas un poquito más juntas
+                        viewModel.tablero.forEach { fila ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                fila.forEach { celda ->
+                                    WordleBox(celda = celda, modifier = Modifier.weight(1f))
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // --- TECLADO (SIEMPRE ABAJO) ---
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.BottomCenter) {
-                WordleKeyboard(viewModel = viewModel)
+                // --- TECLADO ---
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    WordleKeyboard(viewModel = viewModel)
+                }
             }
         }
 
-        // --- VENTANA DE APUESTAS (OVERLAY) ---
+        // --- VENTANA DE APUESTAS ---
         if (showBetDialog) {
             BettingDialog(
                 monedasDisponibles = albumViewModel.monedas,
                 onBetConfirmed = { monto ->
-                    albumViewModel.monedas -= monto // Restamos de la cartera global
+                    albumViewModel.monedas -= monto
                     viewModel.apuestaActual = monto
                     showBetDialog = false
                 },
@@ -110,17 +144,19 @@ fun WordleScreen(
             )
         }
 
-        // --- DIÁLOGO DE RESULTADO ---
+        // --- DIÁLOGO DE RESULTADO (Usamos el nombre real de exhibición) ---
         if (viewModel.juegoTerminado) {
             GameResultDialog(
                 viewModel = viewModel,
                 onConfirm = {
-                    // Si ganó, le sumamos el premio al AlbumViewModel
-                    if (viewModel.jugadorGano) {
+                    if (viewModel.jugadorGano && !viewModel.premioEntregado) {
                         val premio = viewModel.apuestaActual * viewModel.multiplicadorGanado
                         albumViewModel.monedas += premio
+                        viewModel.entregarPremio()
                     }
-                    onBack() // Regresamos al hub para refrescar
+                    // Forzamos la descarga de un nuevo jugador para la siguiente partida
+                    viewModel.iniciarNuevoJuego()
+                    onBack()
                 }
             )
         }
@@ -238,17 +274,20 @@ fun ActionKeyButton(text: String? = null, icon: androidx.compose.ui.graphics.vec
     }
 }
 
-// ==========================================
-// COMPONENTE: POPUP RESULTADOS
-// ==========================================
+
 @Composable
-fun GameResultDialog(viewModel: WordleViewModel) {
+fun GameResultDialog(
+    viewModel: WordleViewModel,
+    onConfirm: () -> Unit
+) {
+    val premioReal = viewModel.apuestaActual * viewModel.multiplicadorGanado
+
     AlertDialog(
-        onDismissRequest = { /* Forzamos a que toque un botón */ },
+        onDismissRequest = { },
         containerColor = Color(0xFF1E1E1E),
         title = {
             Text(
-                text = if (viewModel.jugadorGano) "¡VICTORIA!" else "FIN DEL JUEGO",
+                text = if (viewModel.jugadorGano) "¡DESCUBIERTO!" else "FIN DEL JUEGO",
                 color = if (viewModel.jugadorGano) Color(0xFF00E5FF) else Color(0xFFE91E63),
                 fontWeight = FontWeight.Black,
                 fontSize = 24.sp,
@@ -266,24 +305,30 @@ fun GameResultDialog(viewModel: WordleViewModel) {
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
-                if (viewModel.jugadorGano) {
-                    Text("¡Multiplicador ganado: x${viewModel.multiplicadorGanado}!", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
+
+                // Lógica de visualización del premio de la casa
+                if (viewModel.jugadorGano && premioReal > 0) {
+                    Text("¡Multiplicador: x${viewModel.multiplicadorGanado}!", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Premio total: 🪙 $premioReal", color = Color.White, fontSize = 16.sp)
+                } else if (viewModel.jugadorGano && premioReal == 0) {
+                    Text("Adivinaste tarde...", color = Color.LightGray)
+                    Text("¡La casa se queda tu apuesta!", color = Color(0xFFE91E63), fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 } else {
-                    Text("Has perdido tu apuesta.", color = Color.LightGray)
+                    Text("Has perdido tu apuesta de 🪙 ${viewModel.apuestaActual}.", color = Color.LightGray)
                 }
             }
         },
         confirmButton = {
             Button(
-                onClick = { viewModel.iniciarNuevoJuego("NEYMAR") /* Para probar otra después de ganar */ },
+                onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF))
             ) {
-                Text("Jugar de nuevo", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text("Continuar", color = Color.Black, fontWeight = FontWeight.Bold)
             }
         }
     )
 }
-
 @Composable
 fun BettingDialog(
     monedasDisponibles: Int,

@@ -28,6 +28,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import mx.bruko.ui.screens.GamesHubScreen
+import mx.bruko.ui.screens.PlinkoScreen
 import mx.bruko.ui.screens.WordleScreen
 
 // Definimos los destinos de nuestra app
@@ -39,13 +40,12 @@ enum class RutasApp {
 
     JUEGOS,
 
-    WORDLE
+    WORDLE,
+
+    PLINKO
 }
 
 class MainActivity : ComponentActivity() {
-
-    // Instanciamos el ViewModel aquí. Al pasarlo a ambas pantallas,
-    // comparten los mismos datos de Firebase.
     private val viewModel: AlbumViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -153,8 +153,14 @@ fun MainAppScreen(viewModel: AlbumViewModel) {
                 RutasApp.SOBRES -> PackScreen(viewModel = viewModel)
                 RutasApp.ALMACEN -> InventoryScreen(viewModel = viewModel)
                 RutasApp.JUEGOS -> GamesHubScreen(viewModel = viewModel,
-                    onPlayWordle = {pantallaActual = RutasApp.WORDLE})
-                RutasApp.WORDLE -> WordleScreen(onBack = {pantallaActual = RutasApp.JUEGOS})
+                    onPlayWordle = {pantallaActual = RutasApp.WORDLE},
+                    onPlayPlinko = {pantallaActual = RutasApp.PLINKO})
+                RutasApp.WORDLE -> WordleScreen(onBack = {pantallaActual = RutasApp.JUEGOS}, albumViewModel = viewModel
+                )
+                RutasApp.PLINKO -> PlinkoScreen(
+                    onBack = {pantallaActual = RutasApp.JUEGOS},
+                    albumViewModel = viewModel
+                )
             }
         }
     }
