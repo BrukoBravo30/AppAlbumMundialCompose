@@ -1,109 +1,266 @@
 package mx.bruko.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.LibraryAdd
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mx.bruko.ui.components.PlayerCard
 import mx.bruko.viewModel.AlbumViewModel
 
+// Paleta de rarezas premium (Tonos más sofisticados y elegantes)
+fun getPremiumRarityColor(rareza: String): Color {
+    return when (rareza) {
+        "unico" -> Color(0xFF00E5FF) // Cian puro
+        "Diamante" -> Color(0xFFC084FC) // Púrpura suave
+        "Oro" -> Color(0xFFFBBF24) // Champagne / Oro mate
+        "Plata" -> Color(0xFF94A3B8) // Slate gris azulado
+        else -> Color(0xFFB45309) // Bronce oscuro
+    }
+}
+
 @Composable
 fun InventoryScreen(viewModel: AlbumViewModel) {
     val inventario = viewModel.inventario
-    // AGRUPACIÓN: Juntamos las cartas idénticas
     val inventarioAgrupado = inventario.groupBy { it.nombre }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFF121212))) {
-        // Cabecera
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("MI ALMACÉN", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
-            Text("🪙 ${viewModel.monedas}", color = Color(0xFFFFD700), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        }
+    // ==========================================
+    // FONDO AMBIENTAL (Limpieza y Profundidad)
+    // ==========================================
+    // Slate/Navy extremadamente oscuro
+    val bgBase = Brush.verticalGradient(listOf(Color(0xFF0B101A), Color(0xFF05070A)))
+    // Luces radiales muy sutiles, reducidas a 4% de opacidad
+    val ambientLight1 = Brush.radialGradient(listOf(Color(0xFF00E5FF).copy(alpha = 0.04f), Color.Transparent), radius = 1200f)
+    val ambientLight2 = Brush.radialGradient(listOf(Color(0xFFC084FC).copy(alpha = 0.03f), Color.Transparent), radius = 1000f)
 
-        Text(
-            text = "Total de cartas: ${inventario.size} | Jugadores únicos: ${inventarioAgrupado.size}",
-            color = Color.Gray,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+    Box(modifier = Modifier.fillMaxSize().background(bgBase)) {
+        Box(modifier = Modifier.fillMaxSize().background(ambientLight1).align(Alignment.TopEnd))
+        Box(modifier = Modifier.fillMaxSize().background(ambientLight2).align(Alignment.BottomStart))
 
-        if (inventarioAgrupado.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Almacén vacío.\n¡Abre sobres para conseguir jugadores!", color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            // ==========================================
+            // HEADER PREMIUM (Minimalista)
+            // ==========================================
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 24.dp, end = 24.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Iteramos sobre los grupos, no sobre las cartas individuales
-                items(inventarioAgrupado.keys.toList()) { nombreJugador ->
-                    val listaCopias = inventarioAgrupado[nombreJugador]!!
-                    val jugadorModelo = listaCopias.first() // Usamos la primera copia como modelo visual
-                    val cantidad = listaCopias.size
+                Column {
+                    Text(
+                        text = "ALMACÉN",
+                        color = Color.White,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Total: ${inventario.size}   •   Únicas: ${inventarioAgrupado.size}",
+                        color = Color(0xFF64748B), // Slate 500
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.5.sp
+                    )
+                }
 
-                    // Verificamos si ya está pegado en el álbum
-                    val yaPegado = viewModel.albumByCountry[jugadorModelo.pais]?.find { it.nombre == nombreJugador }?.pegado == true
+                // Saldo elegante
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF1E293B).copy(alpha = 0.5f)) // Fondo cristal oscuro
+                        .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "🪙", fontSize = 14.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "${viewModel.monedas}",
+                        color = Color(0xFFFBBF24), // Oro elegante
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
-                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
-                        Column {
-                            Box {
-                                PlayerCard(player = jugadorModelo) // Muestra la carta
+            // ==========================================
+            // GRID DE CARTAS
+            // ==========================================
+            if (inventarioAgrupado.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Filled.LibraryAdd, contentDescription = null, tint = Color(0xFF1E293B), modifier = Modifier.size(56.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Almacén vacío",
+                            color = Color(0xFF475569),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 40.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    items(inventarioAgrupado.keys.toList()) { nombreJugador ->
+                        val listaCopias = inventarioAgrupado[nombreJugador]!!
+                        val jugadorModelo = listaCopias.first()
+                        val cantidad = listaCopias.size
+                        val yaPegado = viewModel.albumByCountry[jugadorModelo.pais]?.find { it.nombre == nombreJugador }?.pegado == true
+                        val rarityColor = getPremiumRarityColor(jugadorModelo.rareza)
 
-                                // BADGE DE CANTIDAD (Burbuja indicadora)
+                        // CONTENEDOR GLASSMORPHISM PREMIUM (Sin sombras escandalosas)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFF151E2E).copy(alpha = 0.7f)) // Azul marino ahumado
+                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+
+                                // 1. ZONA DE LA CARTA
                                 Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(8.dp)
-                                        .size(32.dp)
-                                        .background(Color(0xFF00E5FF), CircleShape),
+                                    modifier = Modifier.fillMaxWidth(),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("x$cantidad", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                                    // Glow ambiental de rareza (Solo detrás de la carta)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(100.dp)
+                                            .blur(40.dp)
+                                            .background(rarityColor.copy(alpha = 0.15f), CircleShape)
+                                    )
+
+                                    Box(modifier = Modifier.padding(bottom = 12.dp)) {
+                                        PlayerCard(player = jugadorModelo)
+                                    }
+
+                                    // BADGE "xCantidad" (Sutil y elegante)
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .offset(x = 6.dp, y = (-6).dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFF020617).copy(alpha = 0.9f))
+                                            .border(0.5.dp, rarityColor.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "x$cantidad",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        )
+                                    }
                                 }
-                            }
 
-                            // Botones de acción
-                            Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                // Siempre puedes vender
-                                Button(
-                                    onClick = { viewModel.venderCarta(jugadorModelo) }, // Elimina solo una copia de la lista original
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB71C1C)),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text("Vender\n🪙${viewModel.obtenerPrecioVenta(jugadorModelo.rareza)}", fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                                }
+                                // 2. ZONA DE ACCIONES (Botones Fantasma/Glass)
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 
-                                Spacer(Modifier.width(8.dp))
+                                    // BOTÓN: PEGAR AL ÁLBUM
+                                    val actionColor = if (yaPegado) Color(0xFF334155) else Color(0xFF00E5FF)
+                                    val bgPegar = if (yaPegado) Color.Transparent else actionColor.copy(alpha = 0.08f)
 
-                                // Solo puedes pegar si NO está ya en el álbum
-                                Button(
-                                    onClick = {
-                                        if (!yaPegado) viewModel.pegarEnAlbum(jugadorModelo)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (yaPegado) Color.DarkGray else Color(0xFF4CAF50),
-                                        contentColor = if (yaPegado) Color.LightGray else Color.White
-                                    ),
-                                    modifier = Modifier.weight(1f),
-                                    enabled = !yaPegado
-                                ) {
-                                    Text(if (yaPegado) "Ya\nPegado" else "Pegar al\nÁlbum", fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(32.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(bgPegar)
+                                            .border(0.5.dp, actionColor.copy(alpha = if (yaPegado) 0.2f else 0.3f), RoundedCornerShape(8.dp))
+                                            .clickable(enabled = !yaPegado) { viewModel.pegarEnAlbum(jugadorModelo) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = if (yaPegado) Icons.Filled.Check else Icons.Filled.LibraryAdd,
+                                                contentDescription = null,
+                                                tint = actionColor,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = if (yaPegado) "EN ÁLBUM" else "PEGAR",
+                                                color = actionColor,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp,
+                                                letterSpacing = 1.sp
+                                            )
+                                        }
+                                    }
+
+                                    // BOTÓN: VENDER (Carmín sofisticado, no rojo brillante)
+                                    val sellColor = Color(0xFFF43F5E) // Rose/Crimson premium
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(32.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(sellColor.copy(alpha = 0.08f))
+                                            .border(0.5.dp, sellColor.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                            .clickable { viewModel.venderCarta(jugadorModelo) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Sell,
+                                                contentDescription = null,
+                                                tint = sellColor,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "VENDER",
+                                                color = sellColor,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp,
+                                                letterSpacing = 1.sp
+                                            )
+                                            Spacer(modifier = Modifier.weight(1f))
+                                            Text(
+                                                text = "🪙${viewModel.obtenerPrecioVenta(jugadorModelo.rareza)}",
+                                                color = sellColor.copy(alpha = 0.8f),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

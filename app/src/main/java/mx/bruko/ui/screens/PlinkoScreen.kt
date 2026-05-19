@@ -73,7 +73,7 @@ fun PlinkoScreen(
                         bola = bola,
                         onLlegoAlFondo = {
                             viewModel.bolaLlegoAlFondo(bola) { premio ->
-                                albumViewModel.monedas += premio
+                                albumViewModel.sumarMonedas(premio)
                             }
                         }
                     )
@@ -90,7 +90,7 @@ fun PlinkoScreen(
             onApostar = {
                 viewModel.comprarBola(
                     saldoActual = albumViewModel.monedas,
-                    onCobrar = { costo -> albumViewModel.monedas -= costo }
+                    onCobrar = { costo -> albumViewModel.restarMonedas(costo) }
                 )
             }
         )

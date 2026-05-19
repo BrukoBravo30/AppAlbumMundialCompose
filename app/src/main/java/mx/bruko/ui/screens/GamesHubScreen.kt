@@ -7,7 +7,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Casino
+import androidx.compose.material.icons.filled.Games
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Money
 import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -25,7 +27,8 @@ import mx.bruko.viewModel.AlbumViewModel
 @Composable
 fun GamesHubScreen(viewModel: AlbumViewModel,
                    onPlayWordle: () -> Unit,
-                   onPlayPlinko: () -> Unit) {
+                   onPlayPlinko: () -> Unit,
+                   onPlayPenales: () -> Unit) {
     // Fondo de Casino (Tonos púrpuras y negros muy oscuros)
     val bgGradient = Brush.verticalGradient(listOf(Color(0xFF120024), Color(0xFF000000)))
 
@@ -93,12 +96,23 @@ fun GamesHubScreen(viewModel: AlbumViewModel,
                 )
             }
 
-            // Juego 3: Tragamonedas (Placeholder)
+            // Juego 3: Penales
             item {
                 GameCard(
-                    title = "Tragamonedas 777",
-                    description = "Haz coincidir 3 escudos del mismo equipo para llevarte el Jackpot.",
-                    icon = Icons.Filled.Casino,
+                    title = "Penales",
+                    description = "Tira a puerta, intentando vencer al portero!",
+                    icon = Icons.Filled.Games,
+                    accentColor = Color(0xFFFFC107),
+                    isLocked = false,
+                    onClick = { onPlayPenales()}
+                )
+            }
+            //juego 4: Ruleta
+            item {
+                GameCard(
+                    title = "Ruleta",
+                    description = "Ruleta",
+                    icon = Icons.Filled.Money,
                     accentColor = Color(0xFFFFC107),
                     isLocked = true,
                     onClick = { }
