@@ -49,7 +49,7 @@ class AlbumViewModel(private val contexto: Application) : AndroidViewModel(conte
     }
 
     // ==========================================
-    // SINOPSIS ASÍNCRONA: RECONSTRUCCIÓN TRAS RED
+    // RECONSTRUCCIÓN TRAS RED
     // ==========================================
     private fun fetchAlbumData() {
         db.collection("jugadores").get().addOnSuccessListener { result ->
@@ -67,7 +67,7 @@ class AlbumViewModel(private val contexto: Application) : AndroidViewModel(conte
             jugadoresObtenidos.clear()
             jugadoresObtenidos.addAll(listaIdsInventario)
 
-            // 3. ¡AHORA SÍ! Como allPlayersList ya tiene datos, buscamos y reconstruimos el Inventario
+            // 3. Como allPlayersList ya tiene datos, buscamos y reconstruimos el Inventario
             val jugadoresReconstruidos = listaIdsInventario.mapNotNull { nombreGuardado ->
                 allPlayersList.find { it.nombre == nombreGuardado }?.copy(pegado = true)
             }

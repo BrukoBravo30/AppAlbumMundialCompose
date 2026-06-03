@@ -31,6 +31,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -45,6 +47,17 @@ import coil.compose.AsyncImage
 import mx.bruko.ui.components.PlayerCard
 import mx.bruko.ui.components.obtenerUrlBandera
 import mx.bruko.viewModel.AlbumViewModel
+
+// Helper para colores de borde según rareza (Premium Blue/Neon)
+fun getBorderRarityColors(rareza: String): List<Color> {
+    return when (rareza) {
+        "unico" -> listOf(Color(0xFF00E5FF), Color(0xFF0072FF)) // Cian a Azul Profundo
+        "Diamante" -> listOf(Color(0xFFD8B4FE), Color(0xFF7E22CE)) // Lavanda a Púrpura
+        "Oro" -> listOf(Color(0xFFFCD34D), Color(0xFFB45309)) // Oro brillante a oscuro
+        "Plata" -> listOf(Color(0xFFE2E8F0), Color(0xFF64748B)) // Plata a Slate
+        else -> listOf(Color(0xFFD97706), Color(0xFF78350F)) // Bronce
+    }
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -67,20 +80,9 @@ fun AlbumScreen(viewModel: AlbumViewModel) {
     )
 
     // ==========================================
-    // ESTILOS DE FONDO AMBIENTAL (Glow de fondo)
+    // CONTENEDOR PRINCIPAL TRANSPARENTE
     // ==========================================
-    val backgroundBase = Brush.verticalGradient(
-        colors = listOf(Color(0xFF0F172A), Color(0xFF020617)) // Slate 900 a Slate 950
-    )
-    val ambientGlow = Brush.radialGradient(
-        colors = listOf(Color(0xFF00E5FF).copy(alpha = 0.15f), Color.Transparent),
-        radius = 1200f
-    )
-
-    Box(modifier = Modifier.fillMaxSize().background(backgroundBase)) {
-        // Capa de brillo ambiental de fondo
-        Box(modifier = Modifier.fillMaxSize().background(ambientGlow))
-
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
 
             // ==========================================
@@ -89,7 +91,7 @@ fun AlbumScreen(viewModel: AlbumViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 24.dp, start = 20.dp, end = 20.dp, bottom = 8.dp) // Reducido el top padding
+                    .padding(top = 24.dp, start = 20.dp, end = 20.dp, bottom = 8.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -105,23 +107,21 @@ fun AlbumScreen(viewModel: AlbumViewModel) {
                     )
                     Text(
                         text = "$jugadoresPegados / $totalJugadores",
-                        color = Color(0xFF00E5FF), // Cian Neón
+                        color = Color(0xFF00E5FF),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Contenedor de la barra de dopamina (Efecto profundidad)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(14.dp)
                         .clip(RoundedCornerShape(7.dp))
-                        .background(Color(0xFF1E293B)) // Slate 800
-                        .border(1.dp, Color.Black.copy(alpha = 0.5f), RoundedCornerShape(7.dp))
+                        .background(Color(0xFF0B1B3D).copy(alpha = 0.8f)) // Transparencia sutil
+                        .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.3f), RoundedCornerShape(7.dp))
                 ) {
-                    // Relleno animado (Degradado Neón)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(progresoAnimado)
@@ -136,7 +136,7 @@ fun AlbumScreen(viewModel: AlbumViewModel) {
                 }
                 Text(
                     text = "${(progresoAnimado * 100).toInt()}% COMPLETADO",
-                    color = Color(0xFF94A3B8), // Slate 400
+                    color = Color(0xFF94A3B8),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -145,12 +145,12 @@ fun AlbumScreen(viewModel: AlbumViewModel) {
             }
 
             // ==========================================
-            // PÁGINAS DEL ÁLBUM (GLASSMORPHISM)
+            // PÁGINAS DEL ÁLBUM
             // ==========================================
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 24.dp) // Tarjetas un poco más anchas
+                contentPadding = PaddingValues(horizontal = 24.dp)
             ) { page ->
                 val country = countries[page]
                 val players = albumData[country] ?: emptyList()
@@ -163,73 +163,98 @@ fun AlbumScreen(viewModel: AlbumViewModel) {
                             val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                             val absOffset = kotlin.math.abs(pageOffset)
 
-                            val scale = 1f - (absOffset * 0.08f) // Escala más suave
+                            val scale = 1f - (absOffset * 0.08f)
                             scaleX = scale
                             scaleY = scale
                             alpha = 1f - (absOffset * 0.5f)
                         },
                     shape = RoundedCornerShape(16.dp),
-                    // Fondo Glassmorphism Dark Premium
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF131C2D).copy(alpha = 0.75f)),
-                    // Borde de luz muy fino para el efecto cristal
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-                    elevation = CardDefaults.cardElevation(0.dp) // Quitamos sombra nativa para mejor rendimiento con alpha
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Column {
-                        // Encabezado del País (Gradiente suave en lugar de color sólido)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(70.dp)
-                                .background(
-                                    Brush.horizontalGradient(
-                                        colors = listOf(Color(0xFF0B101A).copy(alpha = 0.8f), Color.Transparent)
+                    // Fondo Glassmorphism Diagonal (Ajustado para que flote sobre el fondo global)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF131C2D).copy(alpha = 0.65f), // Más cristalino
+                                        Color(0xFF08101E).copy(alpha = 0.85f)
+                                    ),
+                                    start = Offset(0f, 0f),
+                                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                                )
+                            )
+                    ) {
+                        Column {
+                            // Encabezado del País
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(70.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colors = listOf(Color(0xFF040B16).copy(alpha = 0.7f), Color.Transparent)
+                                        )
                                     )
-                                )
-                                .padding(horizontal = 20.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                AsyncImage(
-                                    model = obtenerUrlBandera(country),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(CircleShape)
-                                        .border(2.dp, Color.White.copy(alpha = 0.2f), CircleShape) // Borde en bandera
-                                )
-                                Spacer(Modifier.width(16.dp))
-                                Text(
-                                    text = country.uppercase(),
-                                    color = Color.White,
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 2.sp
-                                )
+                                    .padding(horizontal = 20.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    AsyncImage(
+                                        model = obtenerUrlBandera(country),
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .border(2.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                                    )
+                                    Spacer(Modifier.width(16.dp))
+                                    Text(
+                                        text = country.uppercase(),
+                                        color = Color.White,
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 2.sp
+                                    )
+                                }
                             }
-                        }
 
-                        // Cuadrícula de Estampas
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(players) { player ->
-                                // Aquí suponemos que PlayerCard ya tiene un diseño premium,
-                                // al estar sobre un fondo oscuro, resaltará automáticamente.
-                                if (player.pegado) {
-                                    Box(modifier = Modifier.graphicsLayer {
-                                        shadowElevation = 15f
-                                        shape = RoundedCornerShape(10.dp)
-                                        ambientShadowColor = Color(0xFF00E5FF) // Sombra cian para las cartas pegadas
-                                    }) {
-                                        PlayerCard(player = player)
+                            // Cuadrícula de Estampas
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(players) { player ->
+                                    if (player.pegado) {
+                                        val isHighRating = player.rareza == "unico" || player.rareza == "Diamante"
+                                        val borderColors = getBorderRarityColors(player.rareza)
+
+                                        // CONTENEDOR DE CARTA
+                                        Box(modifier = Modifier
+                                            .graphicsLayer {
+                                                shape = RoundedCornerShape(12.dp)
+                                                shadowElevation = if (isHighRating) 30f else 8f
+                                                ambientShadowColor = borderColors[0]
+                                                spotShadowColor = borderColors[0]
+                                            }
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .border(
+                                                width = if (isHighRating) 2.dp else 1.dp,
+                                                brush = Brush.linearGradient(borderColors),
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                        ) {
+                                            PlayerCard(player = player)
+                                        }
+                                    } else {
+                                        HuecoVacioHolograma(nombre = player.nombre)
                                     }
-                                } else {
-                                    HuecoVacioHolograma(nombre = player.nombre)
                                 }
                             }
                         }
@@ -253,18 +278,22 @@ fun AlbumScreen(viewModel: AlbumViewModel) {
 }
 
 // ==========================================
-// COMPONENTE: HUECO VACÍO (Estilo Holograma/Placeholder Gaming)
+// COMPONENTE: HUECO VACÍO
 // ==========================================
 @Composable
 fun HuecoVacioHolograma(nombre: String) {
     Box(
         modifier = Modifier
-            .aspectRatio(0.7f) // Proporción clásica
-            .clip(RoundedCornerShape(10.dp))
-            // Fondo oscuro muy sutilmente tintado de cian
-            .background(Color(0xFF00E5FF).copy(alpha = 0.03f))
-            // Borde luminoso tenue
-            .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.25f), RoundedCornerShape(10.dp)),
+            .aspectRatio(0.68f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(Color(0xFF0B1426).copy(alpha = 0.5f), Color(0xFF060B14).copy(alpha = 0.5f)),
+                    start = Offset(0f, 0f),
+                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                )
+            )
+            .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -275,15 +304,15 @@ fun HuecoVacioHolograma(nombre: String) {
             Icon(
                 imageVector = Icons.Filled.PersonOutline,
                 contentDescription = "Falta",
-                tint = Color(0xFF00E5FF).copy(alpha = 0.3f), // Icono fantasma
+                tint = Color(0xFF00E5FF).copy(alpha = 0.3f),
                 modifier = Modifier.size(54.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = nombre.uppercase(),
-                color = Color(0xFF94A3B8).copy(alpha = 0.7f), // Texto gris-azulado sutil
-                fontSize = 12.sp,
+                color = Color(0xFF94A3B8).copy(alpha = 0.7f),
+                fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
                 lineHeight = 16.sp,

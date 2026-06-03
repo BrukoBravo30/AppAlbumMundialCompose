@@ -45,18 +45,9 @@ fun InventoryScreen(viewModel: AlbumViewModel) {
     val inventarioAgrupado = inventario.groupBy { it.nombre }
 
     // ==========================================
-    // FONDO AMBIENTAL (Limpieza y Profundidad)
+    // CONTENEDOR PRINCIPAL TRANSPARENTE
     // ==========================================
-    // Slate/Navy extremadamente oscuro
-    val bgBase = Brush.verticalGradient(listOf(Color(0xFF0B101A), Color(0xFF05070A)))
-    // Luces radiales muy sutiles, reducidas a 4% de opacidad
-    val ambientLight1 = Brush.radialGradient(listOf(Color(0xFF00E5FF).copy(alpha = 0.04f), Color.Transparent), radius = 1200f)
-    val ambientLight2 = Brush.radialGradient(listOf(Color(0xFFC084FC).copy(alpha = 0.03f), Color.Transparent), radius = 1000f)
-
-    Box(modifier = Modifier.fillMaxSize().background(bgBase)) {
-        Box(modifier = Modifier.fillMaxSize().background(ambientLight1).align(Alignment.TopEnd))
-        Box(modifier = Modifier.fillMaxSize().background(ambientLight2).align(Alignment.BottomStart))
-
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
 
             // ==========================================

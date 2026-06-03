@@ -35,8 +35,6 @@ class PlinkoViewModel : ViewModel() {
     var apuestaSeleccionada by mutableStateOf(100)
         private set
 
-    // Usamos una lista observable porque en Plinko el usuario puede lanzar
-    // 10 bolas seguidas como ametralladora, y todas deben caer al mismo tiempo.
     var bolasActivas = mutableStateListOf<BolaPlinko>()
         private set
 
